@@ -54,27 +54,39 @@ class TurnoController extends AppController
      */
     public function add()
     {
-            $turnos=$this->request->getData('id_turno');
             
-            $finalTurnos = array();
-            if(sizeof($turnos)==5){
-                foreach ($turnos as $horario) {
-                    $turno = $this->Turno->newEntity();
-                    $arrayHorario = Array('id_empleado' => $this->request->getData('id_empleado'), 'id_horario' => $horario);
-                    $turno = $this->Turno->patchEntity($turno, $arrayHorario);
-                    if ($this->Turno->save($turno)) {
-                        $message = 'Saved';
-                        array_push($finalTurnos, $turno);
-                    } else {
-                        $message = 'Error';
+            $turnoEmpleado = $this->Turno->find()->where(['id_empleado =' => $this->request->getData('id_empleado')])->toArray();
+            if(empty($turnoEmpleado)){
+            
+                $turnos=$this->request->getData('id_turno');
+                
+                $finalTurnos = array();
+                if(sizeof($turnos)==5){
+                    foreach ($turnos as $horario) {
+                        $turno = $this->Turno->newEntity();
+                        $arrayHorario = Array('id_empleado' => $this->request->getData('id_empleado'), 'id_horario' => $horario);
+                        $turno = $this->Turno->patchEntity($turno, $arrayHorario);
+                        if ($this->Turno->save($turno)) {
+                            $message = 'Saved';
+                            array_push($finalTurnos, $turno);
+                        } else {
+                            $message = 'Error';
+                        }
                     }
+                }else{
+                    $message = 'El Empleado debe cumplir 5 turnos de 8 horas';
                 }
+                $this->set([
+                    'message' => $message,
+                    'turno' => $finalTurnos,
+                    '_serialize' => ['message', 'turno']
+                ]);
+            }else{
+                $this->set([
+                    'message' => 'El empleado ya tiene turnos asignados',
+                    '_serialize' => ['message', 'turno']
+                ]);
             }
-            $this->set([
-                'message' => $message,
-                'turno' => $finalTurnos,
-                '_serialize' => ['message', 'turno']
-            ]);
         $this->RequestHandler->renderAs($this, 'json');
     }
 
@@ -87,21 +99,23 @@ class TurnoController extends AppController
      */
     public function edit($id = null)
     {
-        $turno = $this->Turno->get($id, [
-            'contain' => []
-        ]);
-        if ($this->request->is(['patch', 'post', 'put'])) {
-            $turno = $this->Turno->patchEntity($turno, $this->request->getData());
-            if ($this->Turno->save($turno)) {
-                $this->Flash->success(__('The turno has been saved.'));
-
-                return $this->redirect(['action' => 'index']);
+            $turno = $this->Turno->findById($id)->firstOrFail();            ;
+            if ($this->request->is(['post', 'put', 'patch'])) {
+                $turno = $this->Turno->patchEntity($turno, $this->request->getData());
+                
+                //die(print_r($turno, true));
+                if ($this->Turno->save($turno)) {
+                    $message = 'Saved';
+                } else {
+                    $message = 'Error';
+                }
             }
-            $this->Flash->error(__('The turno could not be saved. Please, try again.'));
-        }
-        $empleados = $this->Turno->Empleados->find('list', ['limit' => 200]);
-        $horario = $this->Turno->Horario->find('list', ['limit' => 200]);
-        $this->set(compact('turno', 'empleados', 'horario'));
+            $this->set([
+                'message' => $message,
+                'turno' => $turno,
+                '_serialize' => ['message', 'turno']
+            ]);
+        $this->RequestHandler->renderAs($this, 'json');
     }
 
     /**

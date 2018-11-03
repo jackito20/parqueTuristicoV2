@@ -44,7 +44,12 @@ class TurnoController extends AppController
             'contain' => ['Empleados', 'Horario']
         ]);
 
-        $this->set('turno', $turno);
+        $this->set([
+            'turno' => $turno,
+            '_serialize' => ['turno']
+        ]);
+        
+        $this->RequestHandler->renderAs($this, 'json'); 
     }
 
     /**
@@ -127,14 +132,16 @@ class TurnoController extends AppController
      */
     public function delete($id = null)
     {
-        $this->request->allowMethod(['post', 'delete']);
         $turno = $this->Turno->get($id);
-        if ($this->Turno->delete($turno)) {
-            $this->Flash->success(__('The turno has been deleted.'));
-        } else {
-            $this->Flash->error(__('The turno could not be deleted. Please, try again.'));
+        
+        $message = 'Deleted';
+        if (!$this->Turno->delete($turno)) {
+            $message = 'Error';
         }
-
-        return $this->redirect(['action' => 'index']);
+        $this->set([
+            'message' => $message,
+            '_serialize' => ['message']
+        ]);
+        $this->RequestHandler->renderAs($this, 'json');
     }
 }
